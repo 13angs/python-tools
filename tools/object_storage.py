@@ -32,17 +32,18 @@ class ObjectStorageApp:
             
             with col1:
                 endpoint = st.text_input(label="Endpoint", help="S3 compatible endpoint URL")
-                access_key = st.text_input(label="Access Key", type="password")
+                bucket_name = st.text_input(label="Bucket Name", help="Name of the bucket to use")
             
+            access_key = st.text_input(label="Access Key", type="password")
+            secret_key = st.text_input(label="Secret Key", type="password")
+
             with col2:
                 port = st.text_input(label="Port", help="Port number for the endpoint")
-                secret_key = st.text_input(label="Secret Key", type="password")
-            
-            region = st.text_input(label="Region", help="Optional region for the storage")
+                region = st.text_input(label="Region", help="Optional region for the storage")
 
             if st.form_submit_button("Save Configuration", type="primary"):
                 # Validate inputs
-                if not all([name, endpoint, access_key, secret_key]):
+                if not all([name, endpoint, access_key, secret_key, bucket_name]):
                     st.error("Please fill in all required fields")
                     return
 
@@ -53,7 +54,8 @@ class ObjectStorageApp:
                     'port': port,
                     'access_key': access_key,
                     'secret_key': secret_key,
-                    'region': region
+                    'region': region,
+                    'bucket_name': bucket_name
                 }
 
                 # Save configuration

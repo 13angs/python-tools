@@ -2,7 +2,7 @@ import streamlit as st
 from sqlalchemy.exc import IntegrityError, DatabaseError
 
 from db.db_context import DatabaseContext
-from models.object_storage import ObjectStorage
+from models.object_storage_config import ObjectStorageConfig
 
 class ObjectStorageRepository:
     def __init__(self):
@@ -11,10 +11,7 @@ class ObjectStorageRepository:
         Sets up database connection and session
         """
         db_context = DatabaseContext()
-        self.Session = db_context.Session
-
-        # Create tables
-        db_context.Base.metadata.create_all(db_context.engine)
+        self.Session = db_context.get_session()
 
     def save_config(self, config):
         """
@@ -25,13 +22,14 @@ class ObjectStorageRepository:
         """
         session = self.Session()
         try:
-            new_config = ObjectStorage(
+            new_config = ObjectStorageConfig(
                 name=config['name'],
                 endpoint=config['endpoint'],
                 port=config['port'],
                 access_key=config['access_key'],
                 secret_key=config['secret_key'],
-                region=config['region']
+                region=config['region'],
+                bucket_name=config['bucket_name']
             )
             session.add(new_config)
             session.commit()
@@ -52,7 +50,7 @@ class ObjectStorageRepository:
         """
         session = self.Session()
         try:
-            configs = session.query(ObjectStorage).all()
+            configs = session.query(ObjectStorageConfig).all()
             return configs
         except DatabaseError as e:
             st.error(f"Error retrieving configurations: {str(e)}")
@@ -69,7 +67,7 @@ class ObjectStorageRepository:
         """
         session = self.Session()
         try:
-            config_to_delete = session.query(ObjectStorage).filter_by(name=config_name).first()
+            config_to_delete = session.query(ObjectStorageConfig).filter_by(name=config_name).first()
             if config_to_delete:
                 session.delete(config_to_delete)
                 session.commit()
@@ -91,7 +89,7 @@ class ObjectStorageRepository:
         """
         session = self.Session()
         try:
-            existing_config = session.query(ObjectStorage).filter_by(name=config_name).first()
+            existing_config = session.query(ObjectStorageConfig).filter_by(name=config_name).first()
             if existing_config:
                 # Update fields
                 existing_config.endpoint = updated_config.get('endpoint', existing_config.endpoint)
