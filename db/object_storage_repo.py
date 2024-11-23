@@ -106,3 +106,28 @@ class ObjectStorageRepository:
             st.error(f"Error updating configuration: {str(e)}")
         finally:
             session.close()
+    
+    def get_config_by_id(self, config_id):
+        """
+        Retrieve an object storage configuration by its ID
+        
+        Args:
+            config_id (int): ID of the configuration to retrieve
+        
+        Returns:
+            ObjectStorageConfig: Configuration object if found, None otherwise
+        """
+        session = self.Session()
+
+        try:
+            config = session.query(ObjectStorageConfig).filter_by(id=config_id).first()
+            if config:
+                return config
+            else:
+                st.warning(f"Configuration with ID {config_id} not found")
+                return None
+        except DatabaseError as e:
+            st.error(f"Error retrieving configuration: {str(e)}")
+            return None
+        finally:
+            session.close()

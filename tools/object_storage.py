@@ -2,20 +2,13 @@ import streamlit as st
 from db.object_storage_repo import ObjectStorageRepository
 import pandas as pd
 from utils.object_storage_utils import ObjectStorageUtil
+from models.object_storage_config import ObjectStorageConfig
 
 class ObjectStorageApp:
     def __init__(self):
         # Initialize the repository
-        aws_access_key_id = st.secrets['aws_access_key_id']
-        aws_secret_access_key = st.secrets['aws_secret_access_key']
-        endpoint_url = st.secrets['endpoint_url']
 
         self.object_storage_repo = ObjectStorageRepository()
-        self.object_storage_util = ObjectStorageUtil(
-            aws_access_key_id,
-            aws_secret_access_key,
-            endpoint_url
-        )
         
         # Initialize session state
         if 'page' not in st.session_state:
@@ -64,37 +57,7 @@ class ObjectStorageApp:
                 st.rerun()
         # with st.dialog("Create Object Storage"):
 
-    def show_object_storage_detail_prev(self, config):
-        """Display detailed view of a specific object storage configuration"""
-        st.header(f"Object Storage Details: {config.name}")
-        
-        # Detailed information layout
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("Connection Details")
-            st.write(f"**Endpoint:** {config.endpoint}")
-            st.write(f"**Port:** {config.port}")
-            st.write(f"**Region:** {config.region}")
-        
-        with col2:
-            st.subheader("Security")
-            st.write(f"**Access Key:** {config.access_key[:4]}{'*' * 10}")
-        
-        # Action buttons
-        col3, col4 = st.columns(2)
-        
-        with col3:
-            if st.button("Edit Configuration"):
-                # Implement edit logic here
-                st.warning("Edit functionality not implemented yet")
-        
-        with col4:
-            if st.button("Back to Configurations"):
-                st.session_state.page = "list"
-                st.rerun()
-
-    def show_object_storage_detail(self, config):
+    def show_object_storage_detail(self, config: ObjectStorageConfig):
         """Display detailed view of a specific object storage configuration"""
         st.header(f"Object Storage / {config.name}")
 
@@ -110,12 +73,19 @@ class ObjectStorageApp:
             # Implement file upload logic here if needed
             
             # Create Folder button
-            st.button("Create Folder")
+            with st.columns([4.5, 1])[1]:
+                st.button("Create Folder")
 
             # Display a table of files and folders
-            objects = self.object_storage_util.list_objects('demo-bucket')
+            object_storage_util = ObjectStorageUtil(
+                config.access_key,
+                config.secret_key,
+                config.endpoint
+            )
+            objects = object_storage_util.list_objects(config.bucket_name, 'new folder')
+
+            transformed_objects = object_storage_util.transform_object_list(objects)
             
-            transformed_objects = self.object_storage_util.transform_object_list(objects)
             df = pd.DataFrame(
                     transformed_objects,
                     columns=["Object", "Size", "Last Modified", ""],
@@ -141,12 +111,13 @@ class ObjectStorageApp:
         with col4:
             if st.button("Back to Configurations"):
                 st.session_state.page = "list"
+
     def list_object_storage_configs(self):
         """List all object storage configurations with interactive elements"""
         st.header("Object Storage Configurations")
         
         # Create New Configuration Button
-        if st.button("➕ Add New Configuration", type="primary"):
+        if st.button("Add New Configuration", type="primary"):
             self.create_object_storage()
         
         # Fetch configurations from the database
