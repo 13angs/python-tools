@@ -105,13 +105,23 @@ class ObjectStorageUtil:
             List[Dict[str, Any]]: List of object metadata
         """
         try:
-            kwargs = {'Bucket': bucket_name}
+            kwargs = {
+                'Bucket': bucket_name,
+                'Delimiter': '/'
+            }
             if prefix:
                 kwargs['Prefix'] = prefix
 
             response = self._s3_client.list_objects_v2(**kwargs)
+
             objects = response.get('Contents', [])
-            return objects
+
+            folders = [
+                { 'Key': prefix['Prefix'], 'Size': 0, 'LastModified': '' }
+                for prefix in response.get('CommonPrefixes', [])
+            ]
+            
+            return folders + objects
         except ClientError as e:
             self._logger.error(f"Error listing objects: {str(e)}")
             return []
@@ -174,6 +184,10 @@ class ObjectStorageUtil:
         
         for obj in objects:
             # Convert LastModified datetime to string
+
+            if obj['Key'] == prefix:
+                continue
+            
             last_modified = obj['LastModified']
             
             # Convert Size to human-readable format
@@ -233,11 +247,16 @@ class ObjectStorageUtil:
             formatted_prefix = self.format_object_key(prefix)
             return formatted_prefix.rstrip(prefix)
 
+        
         # If the key starts with the prefix, remove the prefix
         if key.startswith(prefix):
             remove_prefix_key = key[len(prefix):]
             formatted_key = self.format_object_key(remove_prefix_key)
-            return formatted_key
+            return formatted_key.rstrip('/')
+        
+        if key.endswith('/'):
+            formatted_key = self.format_object_key(key)
+            return formatted_key.rstrip('/')
         
         # If the prefix is not found, return the original key
         return key
