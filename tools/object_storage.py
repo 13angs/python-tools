@@ -82,9 +82,11 @@ class ObjectStorageApp:
                 config.secret_key,
                 config.endpoint
             )
-            objects = object_storage_util.list_objects(config.bucket_name, 'new folder')
 
-            transformed_objects = object_storage_util.transform_object_list(objects)
+            prefix = 'new folder/'
+            objects = object_storage_util.list_objects(config.bucket_name, prefix)
+
+            transformed_objects = object_storage_util.transform_object_list(objects, prefix)
             
             df = pd.DataFrame(
                     transformed_objects,

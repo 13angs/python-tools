@@ -111,7 +111,6 @@ class ObjectStorageUtil:
 
             response = self._s3_client.list_objects_v2(**kwargs)
             objects = response.get('Contents', [])
-            self._logger.info(f"Listed {len(objects)} objects in {bucket_name}")
             return objects
         except ClientError as e:
             self._logger.error(f"Error listing objects: {str(e)}")
@@ -161,7 +160,7 @@ class ObjectStorageUtil:
             self._logger.error(f"Error creating bucket: {str(e)}")
             return False
     
-    def transform_object_list(self, objects):
+    def transform_object_list(self, objects, prefix):
         """
         Transform a list of object dictionaries into a list of lists.
         
@@ -188,8 +187,10 @@ class ObjectStorageUtil:
             size = human_readable_size(obj['Size'])
             
             # Create a row for the list
+            prefix_removed_key = self.remove_prefix(obj['Key'], prefix)
+
             row = [
-                self.format_object_key(obj['Key']),  # Object Name
+                prefix_removed_key,  # Object Name
                 size,        # Size (human-readable)
                 last_modified,  # Last Modified
                 "Download Delete"  # Action column
@@ -215,3 +216,28 @@ class ObjectStorageUtil:
             icon = "📄"
         
         return f"{icon} {key}"
+    
+    def remove_prefix(self, key: str, prefix: str):
+        """
+        Remove the specified prefix from the key.
+        
+        Args:
+            key (str): The full key/path of the file
+            prefix (str): The prefix to remove
+        
+        Returns:
+            str: The key with the prefix removed
+        """
+        # If the key is exactly the prefix, return the prefix
+        if key == prefix:
+            formatted_prefix = self.format_object_key(prefix)
+            return formatted_prefix.rstrip(prefix)
+
+        # If the key starts with the prefix, remove the prefix
+        if key.startswith(prefix):
+            remove_prefix_key = key[len(prefix):]
+            formatted_key = self.format_object_key(remove_prefix_key)
+            return formatted_key
+        
+        # If the prefix is not found, return the original key
+        return key
