@@ -189,7 +189,7 @@ class ObjectStorageUtil:
             
             # Create a row for the list
             row = [
-                obj['Key'],  # Object Name
+                self.format_object_key(obj['Key']),  # Object Name
                 size,        # Size (human-readable)
                 last_modified,  # Last Modified
                 "Download Delete"  # Action column
@@ -198,3 +198,20 @@ class ObjectStorageUtil:
             transformed_data.append(row)
         
         return transformed_data
+    
+    def format_object_key(self, key):
+        """
+        Format the object key based on its type, adding an icon to indicate whether it's a folder or a file.
+
+        Args:
+            key (str): The object key
+
+        Returns:
+            str: Formatted object key with type and icon
+        """
+        if key.endswith('/'):
+            icon =  "📂"
+        else:
+            icon = "📄"
+        
+        return f"{icon} {key}"
