@@ -92,6 +92,9 @@ class ObjectStorageApp:
                     transformed_objects,
                     columns=["Object", "Size", "Last Modified", ""],
                 )
+
+            df['Last Modified'] = pd.to_datetime(df['Last Modified'], format='%Y-%m-%d %H:%M:%S', errors="coerce")
+            
             st.table(df)
 
         # Access tab content (placeholder, implement real logic)
