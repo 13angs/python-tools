@@ -83,20 +83,22 @@ class ObjectStorageApp:
                 config.endpoint
             )
 
-            prefix = 'new folder/'
+
+            if 'prefix' not in st.query_params:
+                st.query_params['prefix'] = ''
+
+            prefix = st.query_params['prefix']
+
             objects = object_storage_util.list_objects(config.bucket_name, prefix)
 
             transformed_objects = object_storage_util.transform_object_list(objects, prefix)
-            
-            df = pd.DataFrame(
-                    transformed_objects,
-                    columns=["Object", "Size", "Last Modified", ""],
-                )
 
-            df['Last Modified'] = pd.to_datetime(df['Last Modified'], format='%Y-%m-%d %H:%M:%S', errors="coerce")
-            
-            st.table(df)
+            selection = self.display_contents(transformed_objects)
 
+            self.handle_prefix(transformed_objects, selection)
+            st.write(selection)
+            
+            
         # Access tab content (placeholder, implement real logic)
         with tabs[1]:
             st.write("Access tab content")
@@ -104,18 +106,6 @@ class ObjectStorageApp:
         # SSL/TLS tab content (placeholder, implement real logic)
         with tabs[2]:
             st.write("SSL/TLS tab content")
-
-        # Action buttons
-        col3, col4 = st.columns([2.5, .9])
-
-        with col3:
-            if st.button("Edit Configuration"):
-                # Implement edit logic here
-                st.warning("Edit functionality not implemented yet")
-
-        with col4:
-            if st.button("Back to Configurations"):
-                st.session_state.page = "list"
 
     def list_object_storage_configs(self):
         """List all object storage configurations with interactive elements"""
@@ -158,6 +148,35 @@ class ObjectStorageApp:
                         self.object_storage_repo.delete_config(config.name)
                         st.success(f"Configuration '{config.name}' deleted successfully!")
                         st.rerun()
+
+    def display_contents(self, contents):
+        """Display contents of the selected configuration"""
+        df = pd.DataFrame(
+                    contents,
+                    columns=["Object", "Size", "Last Modified", ""],
+                )
+
+        df['Last Modified'] = pd.to_datetime(df['Last Modified'], format='%Y-%m-%d %H:%M:%S', errors="coerce")
+        
+        event = st.dataframe(df, hide_index=True, use_container_width=True, on_select="rerun", selection_mode="single-row")
+        return event.selection
+
+    def handle_prefix(self, contents, selection):
+        """Handle prefix filtering"""
+        rows = selection.rows
+        if len(rows) == 0:
+            return
+        
+        row_ind = rows[0]
+        column_ind = 0
+
+        object_name = contents[row_ind][column_ind]
+        if '📂' in object_name:
+            current_prefix = st.query_params['prefix']
+            # Update query params to include the new prefix
+            new_prefix = current_prefix + object_name.replace('📂', '').strip() + '/'
+            st.query_params['prefix'] = new_prefix
+            st.rerun()
 
     def run(self):
         """Main application runner"""
