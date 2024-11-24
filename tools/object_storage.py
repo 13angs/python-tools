@@ -57,8 +57,10 @@ class ObjectStorageApp:
                 st.rerun()
         # with st.dialog("Create Object Storage"):
 
-    def show_object_storage_detail(self, config: ObjectStorageConfig):
+    def show_object_storage_detail(self, config_id: str):
         """Display detailed view of a specific object storage configuration"""
+        config = self.object_storage_repo.get_config_by_id(config_id)
+
         st.header(f"Object Storage / {config.name}")
 
         # Tabs for Object, Access, SSL/TLS
@@ -96,8 +98,6 @@ class ObjectStorageApp:
             selection = self.display_contents(transformed_objects)
 
             self.handle_prefix(transformed_objects, selection)
-            st.write(selection)
-            
             
         # Access tab content (placeholder, implement real logic)
         with tabs[1]:
@@ -137,8 +137,8 @@ class ObjectStorageApp:
                 # Details button
                 with col2:
                     if st.button(f"Details", key=f"detail_{config.name}"):
-                        st.session_state.selected_config = config
-                        st.session_state.page = "detail"
+                        st.query_params['page'] = "detail"
+                        st.query_params['config_id'] = config.id
                         st.rerun()
                 
                 # Delete button
@@ -181,15 +181,23 @@ class ObjectStorageApp:
     def run(self):
         """Main application runner"""
         # Determine which page to show based on session state
-        if st.session_state.page == "list":
+        if "page" not in st.query_params:
+            st.query_params['page'] = 'list'
+        if "config_id" not in st.query_params:
+            st.query_params['config_id'] = ''
+        
+        page = st.query_params['page']
+
+        if page == 'list':
             self.list_object_storage_configs()
         
-        elif st.session_state.page == "detail":
-            if st.session_state.selected_config:
-                self.show_object_storage_detail(st.session_state.selected_config)
+        elif page == 'detail':
+            config_id = st.query_params['config_id']
+            if config_id:
+                self.show_object_storage_detail(config_id)
             else:
-                st.error("No configuration selected")
-                st.session_state.page = "list"
+                st.query_params['page'] = 'list'
+                st.rerun()
 
 def main():
     # Set page configuration
